@@ -1,0 +1,203 @@
+# Panduan Instalasi Manual Uptick Full Node 🚀
+
+Berikut adalah langkah-langkah untuk menginstal dan mengonfigurasi Uptick Full Node secara manual pada sistem Anda. Pastikan Anda mengikuti petunjuk ini dengan cermat dan berhati-hati.
+
+## Persyaratan Perangkat Keras yang Direkomendasikan:
+- Prosesor: 4 Core
+- RAM: 4GB
+- Penyimpanan: 100GB (NVME)
+
+## Persiapan Awal
+```js copy
+# Perbarui paket dan instal dependencies jika diperlukan
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl git wget htop tmux build-essential jq make lz4 gcc unzip -y
+```
+
+## Instalasi Go (Golang)
+```js copy
+cd $HOME
+[ ! -x "$(command -v go)" ] && {
+  VER="1.19.3"
+  wget "https://golang.org/dl/go$VER.linux-amd64.tar.gz"
+  sudo rm -rf /usr/local/go
+  sudo tar -C /usr/local -xzf "go$VER.linux-amd64.tar.gz"
+  rm "go$VER.linux-amd64.tar.gz"
+  [ ! -f ~/.bash_profile ] && touch ~/.bash_profile
+  echo "export PATH=$PATH:/usr/local/go/bin:~/go/bin" >> ~/.bash_profile
+  source $HOME/.bash_profile
+}
+[ ! -d ~/go/bin ] && mkdir -p ~/go/bin
+```
+
+## Konfigurasi Variabel Lingkungan
+```js copy
+echo "export WALLET="wallet"" >> $HOME/.bash_profile
+echo "export MONIKER="test"" >> $HOME/.bash_profile
+echo "export UPTICK_CHAIN_ID="origin_1170-1"" >> $HOME/.bash_profile
+echo "export UPTICK_PORT="10"" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+```
+
+## Unduh dan Konfigurasi Binary Uptick
+```js copy
+cd $HOME
+rm -rf uptick
+git clone https://github.com/UptickNetwork/uptick.git
+cd uptick
+git checkout v0.2.13
+make install
+```
+
+## Konfigurasi dan Inisialisasi Aplikasi
+```js copy
+uptickd config node tcp://localhost:${UPTICK_PORT}657
+uptickd config keyring-backend os
+uptickd config chain-id origin_1170-1
+uptickd init "test" --chain-id origin_1170-1
+
+# Unduh genesis dan addrbook
+wget -O $HOME/.uptickd/config/genesis.json https://raw.githubusercontent.com/UptickNetwork/uptick-testnet/main/uptick_7000-2/genesis.json
+wget -O $HOME/.uptickd/config/addrbook.json https://testnet-files.artstake.net/uptick/addrbook.json
+
+# Tetapkan seeds dan peers
+SEEDS="f97a75fb69d3a5fe893dca7c8d238ccc0bd66a8f@uptick-seed.p2p.brocha.in:30554"
+PEERS="c7fac425d49224b3f8d15d21cb2a8f0f2419c592@65.109.89.18:10656,024d8dbf7b8bb14261df20a1363405105be8c63d@65.108.71.80:26656,e9b37cb6a5743ca1793af119f53b91cf5892fb45@65.109.88.251:34656,aba8f9413848b2f841a45d360469fee981fae6f4@194.163.135.127:26656,997f0946267d49a392770ca7c39637d9a8f282d2@65.109.58.237:26514,b483acbcae7ccd1244f588144245e9d1124c3de5@88.99.56.200:26666,a5ea587054b50300f67b39afea9be53cbc4f306a@81.30.157.35:14656,07df6fd3f41c4bda761931831439ab248eb3dae4@91.223.3.190:55056,dfcd761fed944bc3a60a5ec30f786a5819beae69@154.12.235.67:11556,0afdeea2f014bdfc43ab6dbdf567164daf861cf4@148.113.143.75:26656,0a253cc3132c1319ae61e92fafd1b451d8eb7559@65.109.92.235:34656,a7d269617672fdb299cf54d550fdb5876e550985@168.119.226.107:28956,9324261c00322e0cc3ccd0d959ef374edd9c0401@213.239.207.175:49656,269dff224867b0848a982510e3b3f814aad99bea@161.97.75.5:26656,cc4d304a2d2062dfe9f77a7ee0b9aa3aa1ba7869@65.108.231.124:10656"
+sed -i -e "s/^seeds *=.*/seeds = \"$SEEDS\"/; s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" $HOME/.uptickd/config/config.toml
+```
+
+## Konfigurasi Port Kustom (app.toml dan config.toml)
+```js copy
+# app.toml
+sed -i.bak -e "s%:1317%:${UPTICK_PORT}317%g;
+s%:8080%:${UPTICK_PORT}080%g;
+s%:9090%:${UPTICK_PORT}090%g;
+s%:9091%:${UPTICK_PORT}091%g;
+s%:8545%:${UPTICK_PORT}545%g;
+s%:8546%:${UPTICK_PORT}546%g;
+s%:6065%:${UPTICK_PORT}065%g" $HOME/.uptickd/config/app.toml
+
+# config.toml
+sed -i.bak -e "s%:26658%:${UPTICK_PORT}658%g;
+s%:26657%:${UPTICK_PORT}657%g;
+s%:6060%:${UPTICK_PORT}060%g
+
+;
+s%:26656%:${UPTICK_PORT}656%g;
+s%^external_address = \"\"%external_address = \"$(wget -qO- eth0.me):${UPTICK_PORT}656\"%;
+s%:26660%:${UPTICK_PORT}660%g" $HOME/.uptickd/config/config.toml
+```
+
+## Konfigurasi Pruning, Prometheus, dan Indexing
+```js copy
+sed -i -e "s/^pruning *=.*/pruning = \"nothing\"/" $HOME/.uptickd/config/app.toml
+sed -i -e "s/^pruning-keep-recent *=.*/pruning-keep-recent = \"100\"/" $HOME/.uptickd/config/app.toml
+sed -i -e "s/^pruning-interval *=.*/pruning-interval = \"50\"/" $HOME/.uptickd/config/app.toml
+sed -i 's/minimum-gas-prices =.*/minimum-gas-prices = "0.0auoc"/g' $HOME/.uptickd/config/app.toml
+sed -i -e "s/prometheus = false/prometheus = true/" $HOME/.uptickd/config/config.toml
+sed -i -e "s/^indexer *=.*/indexer = \"null\"/" $HOME/.uptickd/config/config.toml
+```
+
+## Membuat File Service untuk Uptick
+```js copy
+sudo tee /etc/systemd/system/uptickd.service > /dev/null <<EOF
+[Unit]
+Description=Uptick node
+After=network-online.target
+[Service]
+User=$USER
+WorkingDirectory=$HOME/.uptickd
+ExecStart=$(which uptickd) start --home $HOME/.uptickd
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+## Reset dan Unduh Snapshot (Jika Tersedia)
+```js copy
+uptickd tendermint unsafe-reset-all --home $HOME/.uptickd
+if curl -s --head curl https://testnet-files.artstake.net/uptick/snap_uptick.tar.lz4 | head -n 1 | grep "200" > /dev/null; then
+  curl https://testnet-files.artstake.net/uptick/snap_uptick.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.uptickd
+else
+  echo "Snapshot tidak tersedia."
+fi
+```
+
+## Enable dan Start Service Uptick
+```js copy
+sudo systemctl daemon-reload
+sudo systemctl enable uptickd
+sudo systemctl restart uptickd && sudo journalctl -u uptickd -f
+```
+
+## Pembuatan Dompet dan Validator
+```js copy
+# Untuk membuat dompet baru
+uptickd keys add $WALLET
+
+# Untuk memulihkan dompet yang ada
+uptickd keys add $WALLET --recover
+
+# Menyimpan alamat dompet dan validator
+WALLET_ADDRESS=$(uptickd keys show $WALLET -a)
+VALOPER_ADDRESS=$(uptickd keys show $WALLET --bech val -a)
+echo "export WALLET_ADDRESS="$WALLET_ADDRESS >> $HOME/.bash_profile
+echo "export VALOPER_ADDRESS="$VALOPER_ADDRESS >> $HOME/.bash_profile
+source $HOME/.bash_profile
+
+# Mengecek status sinkronisasi, jika node Anda telah sepenuhnya disinkronkan, output dari perintah ini akan mencetak "false"
+uptickd status 2>&1 | jq .SyncInfo
+```
+
+## Membuat Validator
+```js copy
+uptickd tx staking create-validator \
+--amount 1000000auoc \
+--from $WALLET \
+--commission-rate 0.1 \
+--commission-max-rate 0.2 \
+--commission-max-change-rate 0.01 \
+--min-self-delegation 1 \
+--pubkey $(uptickd tendermint show-validator) \
+--moniker "test" \
+--identity "" \
+--details "I love blockchain ❤️" \
+--chain-id origin_1170-1 \
+--gas auto --gas-adjustment 1.5 \
+-y
+```
+
+## Pemantauan
+Jika Anda ingin mengatur sistem pemantauan dan peringatan, gunakan panduan pemantauan node Cosmos kami dengan TenderDuty.
+
+## Keamanan
+Untuk melindungi kunci Anda, jangan bagikan privkey dan mnemonic Anda, dan ikuti aturan keamanan dasar.
+
+### Konfigurasi Kunci SSH untuk Otentikasi
+Anda dapat menggunakan panduan ini untuk mengonfigurasi otentikasi SSH dan menonaktifkan otentikasi kata sandi pada server Anda.
+
+### Keamanan Firewall
+Setel default untuk mengizinkan koneksi keluar, menolak semua koneksi masuk, izinkan SSH, dan port node P2P.
+
+```js copy
+sudo ufw default allow outgoing
+sudo ufw default deny incoming
+sudo ufw allow ssh/tcp
+sudo ufw allow ${UPTICK_PORT}656/tcp
+sudo ufw enable
+```
+
+## Menghapus Node
+```js copy
+sudo systemctl stop uptickd
+sudo systemctl disable uptickd
+sudo rm -rf /etc/systemd/system/uptickd.service
+sudo rm $(which uptickd)
+sudo rm -rf $HOME/.uptickd
+sed -i "/UPTICK_/d" $HOME/.bash_profile
+```
+
+Pastikan Anda menggantikan variabel dengan nilai yang sesuai sebelum menjalankan perintah-perintah di atas. Semoga panduan ini membantu Anda mengelola Full Node Uptick dengan lebih baik! 🚀

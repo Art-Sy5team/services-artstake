@@ -1,0 +1,64 @@
+# Frame
+
+## Persyaratan
+
+Saat ini, satu-satunya cara untuk menjalankan validator testnet Frame adalah dengan mengunduh dan menjalankan gambar docker yang telah dibuat sebelumnya.
+
+**Kami merekomendasikan memiliki setidaknya 8GB RAM dan 20GB ruang penyimpanan di mesin Anda.**
+
+Selain persyaratan perangkat keras dan perangkat lunak di atas, Anda juga memerlukan URL RPC Sepolia.
+
+## Instalasi
+
+Pertama, pastikan Anda sudah menginstal Docker dan menjalankannya di sistem Anda. Anda dapat menemukan petunjuk untuk menginstal Docker [di sini](https://docs.docker.com/engine/install/).
+
+Setelah Anda menginstal Docker, Anda harus membuat direktori lokal di mana konfigurasi validator dan data node akan disimpan.
+Berikut adalah saran:
+
+``` filename="create directory" copy
+mkdir frame-validator
+cd frame-validator
+mkdir data 
+```
+
+Anda kemudian perlu mengunduh konfigurasi validator frame yang telah kami sediakan [di sini](https://github.com/frame-network/node-config).
+``` filename="clone repository" copy
+git clone https://github.com/frame-network/node-config.git
+```
+
+Setelah mengklon repo, buka file `testnet.config` dan gantilah `<SEPOLIA_RPC_HERE>` dengan URL RPC Sepolia Anda.
+
+## Menjalankan Validator
+
+Anda perlu mendapatkan path absolut dari direktori `frame-validator` Anda dengan menjalankan:
+``` filename="" copy
+pwd
+```
+
+Anda kemudian seharusnya dapat memulai validator dengan menjalankan:
+``` filename="" copy
+docker run -d \
+--name frame \
+--rm \
+-it \
+-v <ABSOLUTE_PATH>/node-data:/home/user/.frame \
+-v <ABSOLUTE_PATH>/node-config/testnet.json:/home/user/testnet.json public.ecr.aws/o8e2k8j7/nitro-node:frame \
+--conf.file testnet.json
+```
+
+## Periksa log
+``` filename="" copy
+docker logs -f frame
+```
+
+Jika semuanya berfungsi, Anda akan melihat `Running Arbitrum nitro node` dan `Chain ID:  68840142 (unknown)` di log Anda.
+Validator akan membutuhkan waktu untuk menyusul dan mengupdate ke status terbaru dari rantai.
+Anda akan melihat `validator catching up to last valid` di log saat ia memperbarui ke status terbaru.
+Setelah validator menyusul, Anda akan melihat `created block` di log saat blok baru dibuat.
+
+## Memecahkan Masalah
+
+Untuk informasi lebih lanjut mengenai berbagai konfigurasi untuk menjalankan node Frame, Anda dapat melihat [dokumentasi Arbitrum Nitro](https://docs.arbitrum.io/node-running/how-tos/running-a-full-node).
+Daftar lengkap konfigurasi dapat ditemukan [di sini](https://docs.arbitrum.io/node-running/command-line-options), bendera baris perintah ini berhubungan 1:1 dengan file konfigurasi yang Anda kloning sebelumnya.
+
+Silakan hubungi kami di Discord jika Anda mengalami masalah.

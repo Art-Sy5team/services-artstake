@@ -1,0 +1,136 @@
+# Testnet Gaganode
+
+- [Website](https://meson.network/)
+- [Discord](https://discord.gg/N3zkPUcvve)
+- [Doc offcial](https://docs.gaganode.com)
+- [Dashbord Node](https://dashboard.gaganode.com/register?referral_code=lupxzjvztr)
+
+## Spesifikasi Minimum
+| Komponen  | Requirements minimal               |
+|-----------|---------------------               |
+|  sistem   |  Ubuntu 18.04 atau lebih tinggi    |
+|CPU        |4 Cores                             |
+|RAM        |8 GB                                |
+|Penyimpanan|20 GB HDD                           |
+|Koneksi    |50 mbps upload & bandwidth download |
+
+# Buat akun dan dapatkan Token ID 
+- [Dashboard Gaganode](https://dashboard.gaganode.com/register?referral_code=lupxzjvztr)
+- Buka URL di atas 
+- Buat akun isi informasi anda
+- Email, Password, kode reff **lupxzjvztr**
+- Verifikasi Email 
+- Login dan Copy Token ID anda 
+- Simpan dan Lanjut Step berikut
+
+Jika menggunakan Android, PC, atau VPS silahkan ikuti tutorial masing-masing
+
+## USER linux VPS 
+
+### Step Add user gaganode
+ini bisa di skip atau bisa menggunakan user root lanjut **Install**
+
+- buat password untuk user gaganode masukan nama bebas detail user tidak usah di isi tekan **enter** sampai konfirmasi **y**
+```js copy
+sudo adduser gaganode
+```
+memberikan izin admin ke user **gaganode**
+```js copy
+sudo usermod -aG sudo gaganode
+```
+login sebagai user gaganode
+```js copy
+su - gaganode
+```
+
+### Install
+```js copy
+sudo apt-get update -y && sudo apt-get -y install curl tar ca-certificates
+```
+add user gaganode ke docker (skip jika menggunakan user root)
+```js copy
+sudo usermod -aG docker $USER
+```
+```js copy
+exit
+```
+### RUN Node
+login sebagai user gaganode
+```js copy
+su - gaganode
+```
+### User Linux 64-bit
+```js copy
+curl -o app-linux-amd64.tar.gz https://assets.coreservice.io/public/package/22/app/1.0.3/app-1_0_3.tar.gz && tar -zxf app-linux-amd64.tar.gz && rm -f app-linux-amd64.tar.gz && cd ./app-linux-amd64 && sudo ./app service install
+```
+### User Linux 32-bit
+```js copy
+curl -o app-linux-386.tar.gz https://assets.coreservice.io/public/package/21/app/1.0.3/app-1_0_3.tar.gz && tar -zxf app-linux-386.tar.gz && rm -f app-linux-386.tar.gz && cd ./app-linux-386 && sudo ./app service install
+```
+Start Service
+```js copy
+sudo ./app service start
+```
+Check APP Status
+```js copy
+./app status
+```
+Set Token
+```js copy
+sudo ./apps/gaganode/gaganode config set --token=TOKEN-ANDA
+```
+dibagian `TOKEN-ANDA` ganti dengan Token anda
+Restart APP
+```js copy
+./app restart
+```
+```js copy
+./app status
+```
+- Jika STATUS sudah [RUNNING] tandanya berhasil 
+[![Screenshot-2022-12-24-021322.png](https://i.postimg.cc/hjZZ5Xfs/Screenshot-2022-12-24-021322.png)](https://postimg.cc/N9Txyf82)
+
+## Command Berguna lainya
+
+- Check Log
+```js copy
+./app log   
+```
+- restart node
+```js copy
+./app restart
+```
+- update node
+```js copy
+./app upgrade
+```
+- check node running status
+```js copy
+./app status
+```
+
+- start service node
+```js copy
+sudo ./app service start
+```
+stop node
+```js copy
+sudo ./app service stop 
+```
+- delete node
+```js copy
+sudo ./app service remove
+```
+
+
+- delete file node
+```js copy
+sudo rm -r /home/gaganode/
+```
+- delete user gaganode
+```js copy
+sudo userdel gaganode
+```
+
+### Art-Team INFO
+noted: **art team** here does not have any specific goals or intentions, they only collect data and share it with everyone.

@@ -1,0 +1,122 @@
+# Docker Notes
+
+Reminder Notes for commonly used Docker commands.
+
+## Install Docker and Docker Compose
+
+```js copy
+sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose -y
+```
+
+## Check Docker Version
+
+```js copy
+docker --version
+docker version
+```
+
+## Check Docker Compose Version
+
+```js copy
+docker-compose version
+```
+
+## Managing Containers
+
+### Check Active Containers
+
+```js copy
+docker ps
+```
+
+### Check All Containers
+
+```js copy
+docker ps -a
+```
+
+### Stop Container
+
+```js copy
+docker stop CONTAINER_NAME
+```
+
+### Restart Container
+
+```js copy
+docker restart CONTAINER_NAME
+```
+
+### Remove Container
+
+```js copy
+docker rm CONTAINER_NAME
+```
+
+## Managing Images
+
+### Check All Images
+
+```js copy
+docker images -a
+```
+
+### Remove Images
+
+```js copy
+docker rmi IMAGE_ID
+```
+
+## Managing Volumes
+
+### Check All Volumes
+
+```js copy
+docker volume ls
+```
+
+### Remove Volumes
+
+```js copy
+docker volume rm VOLUME_NAME
+```
+
+## Cleaning up Docker Resources
+
+### Remove all Inactive Containers
+
+```js copy
+docker container prune
+```
+
+### Remove all Unused Images
+
+```js copy
+docker image prune -a
+```
+
+### Remove all Inactive Volumes
+
+```js copy
+docker volume prune
+```
+
+### Remove all Remaining Builds
+
+```js copy
+docker builder prune
+```
+
+### Remove all Inactive Components
+
+```js copy
+docker system prune
+```
+
+Feel free to customize and expand this documentation according to your needs.
+
+Catatan: Pastikan Anda memperbarui dan menyesuaikan instruksi sesuai dengan kebutuhan dan distribusi Linux yang Anda gunakan.

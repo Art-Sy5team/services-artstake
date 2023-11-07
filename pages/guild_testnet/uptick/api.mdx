@@ -1,0 +1,54 @@
+## Panduan Konfigurasi Uptick Testnet
+
+Panduan ini memberikan instruksi untuk mengonfigurasi node Uptick Testnet menggunakan protokol RPC, API, dan gRPC. Berikut adalah detail koneksi untuk jaringan Uptick Testnet:
+
+### Titik Akhir Publik
+
+- **RPC (Remote Procedure Call):**
+
+- **API:**
+
+- **EVM RPC:**
+
+- **gRPC:**
+
+### Informasi Peer
+
+- **Peers:**
+  - `b232825b5b50857c13d2e89a2988eee462ed5462@uptick-testnet-peer.artstake.net:10656`
+  - *(Daftar peer tambahan terdapat dalam potongan kode yang diberikan)*
+
+- **Seeds:**
+  - `cc4d304a2d2062dfe9f77a7ee0b9aa3aa1ba7869@uptick-testnet-seed.artstake.net:10656`
+
+### Sinkronisasi Status
+
+Untuk mempercepat proses sinkronisasi, ikuti langkah-langkah berikut:
+
+1. **Berhenti Layanan Uptickd:**
+   ```js copy
+   sudo systemctl stop uptickd
+   ```
+
+2. **Cadangkan Status Validasi:**
+   ```js copy
+   cp $HOME/.uptickd/data/priv_validator_state.json $HOME/.uptickd/priv_validator_state.json.backup
+   ```
+
+3. **Unduh dan Terapkan Snapshot:**
+   ```js copy
+   rm -rf $HOME/.uptickd/data 
+   curl https://testnet-files.artstake.net/uptick/snap_uptick.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.uptickd
+   mv $HOME/.uptickd/priv_validator_state.json.backup $HOME/.uptickd/data/priv_validator_state.json
+   ```
+
+4. **Restart Layanan Uptickd:**
+   ```js copy
+   sudo systemctl restart uptickd && sudo journalctl -u uptickd -f
+   ```
+
+### Dukungan WebAssembly (Wasm)
+
+Harap dicatat bahwa proyek ini tidak mendukung WebAssembly.
+
+Untuk bantuan lebih lanjut atau pembaruan jaringan, lihat dokumentasi resmi Uptick Testnet atau hubungi administrator jaringan.

@@ -1,0 +1,77 @@
+# Empower Mainnet Configuration Guide
+
+This guide provides step-by-step instructions for setting up and configuring an Empower Mainnet node, including RPC, API, and gRPC endpoints. Please follow these steps carefully to ensure the proper functioning of your node.
+
+## RPC, API, and gRPC Endpoints
+
+- **Public RPC:** [https://empower-mainnet-rpc.itrocket.net:443](https://empower-mainnet-rpc.itrocket.net:443)
+- **Public API:** [https://empower-mainnet-api.itrocket.net:443](https://empower-mainnet-api.itrocket.net:443)
+- **gRPC:** `empower-mainnet-grpc.itrocket.net:14090`
+
+### Peers
+
+```js copy
+PEERS="d363c61e28adabc85a25139682900df8054f059e@empower-mainnet-peer.itrocket.net:14656,f940f6cee89f6aae62d92eaec7cef27289eab1de@174.138.176.146:27656,cd91a32d4b57365398cfca989a332b809ea448fb@167.235.116.137:56656,9dae3cb60dbfa4c088557593402dfc100fb1cc08@188.40.85.150:26656,0b6be13bf604b7840f3842f1a4a5fbd1d12fbaa7@57.128.82.197:26656,7661077003ee8a19c6ce601ad4be1e3b8493c884@51.79.77.103:14656,7252b0c875b5d67d8da351b6e3c54cd1db958817@51.158.37.244:26656,18e02e73422b08d56289f29de0dd31225e1e2eb8@62.210.173.13:26656,3f476ae0f0aa684d0ee827705e2c4190278e3d2f@194.36.147.29:26656,cd8fb693e54d766d83ec03dc48aabe0c24fa0255@51.159.221.31:26656,ce0f7d27679fb51962d4573eca94d46e16e06387@81.0.220.94:24356,a5ce71892959a23ed941cb0167f28959b6694ea3@65.108.206.74:24656,422817bcc2a4546a05ef95ec1aa678d33e1f3105@161.97.82.203:31656"
+sed -i 's|^persistent_peers *=.*|persistent_peers = "'$PEERS'"|' $HOME/.empowerchain/config/config.toml
+```
+
+### Address Book Updates
+
+```js copy
+wget -O $HOME/.empowerchain/config/addrbook.json https://mainnet-files.itrocket.net/empower/addrbook.json
+```
+
+## Snapshot Configuration
+
+```js copy
+sudo systemctl stop empowerd
+
+cp $HOME/.empowerchain/data/priv_validator_state.json $HOME/.empowerchain/priv_validator_state.json.backup
+
+rm -rf $HOME/.empowerchain/data 
+curl https://mainnet-files.itrocket.net/empower/snap_empower.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.empowerchain
+
+mv $HOME/.empowerchain/priv_validator_state.json.backup $HOME/.empowerchain/data/priv_validator_state.json
+
+sudo systemctl restart empowerd && sudo journalctl -u empowerd -f
+```
+
+## State Sync (Fast Synchronization)
+
+For a quicker synchronization process, follow these steps:
+
+```js copy
+sudo systemctl stop empowerd
+
+cp $HOME/.empowerchain/data/priv_validator_state.json $HOME/.empowerchain/priv_validator_state.json.backup
+empowerd tendermint unsafe-reset-all --home $HOME/.empowerchain
+
+peers="d363c61e28adabc85a25139682900df8054f059e@empower-mainnet-peer.itrocket.net:14656,f940f6cee89f6aae62d92eaec7cef27289eab1de@174.138.176.146:27656,cd91a32d4b57365398cfca989a332b809ea448fb@167.235.116.137:56656,9dae3cb60dbfa4c088557593402dfc100fb1cc08@188.40.85.150:26656,0b6be13bf604b7840f3842f1a4a5fbd1d12fbaa7@57.128.82.197:26656,7661077003ee8a19c6ce601ad4be1e3b8493c884@51.79.77.103:14656,7252b0c875b5d67d8da351b6e3c54cd1db958817@51.158.37.244:26656,18e02e73422b08d56289f29de0dd31225e1e2eb8@62.210.173.13:26656,3f476ae0f0aa684d0ee827705e2c4190278e3d2f@194.36.147.29:26656,cd8fb693e54d766d83ec03dc48aabe0c24fa0255@51.159.221.31:26656,ce0f7d27679fb51962d4573eca94d46e16e06387@81.0.220.94:24356,a5ce71892959a23ed941cb0167f28959b6694ea3@65.108.206.74:24656,422817bcc2a4546a05ef95ec1aa678d33e1f3105@161.97.82.203:31656"  
+SNAP_RPC="https://empower-mainnet-rpc.itrocket.net:443"
+
+sed -i.bak -e "s/^persistent_peers *=.*/persistent_peers = \"$peers\"/" $HOME/.empowerchain/config/config.toml 
+
+LATEST_HEIGHT=$(curl -s $SNAP_RPC/block | jq -r .result.block.header.height);
+BLOCK_HEIGHT=$((LATEST_HEIGHT - 1000));
+TRUST_HASH=$(curl -s "$SNAP_RPC/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash) 
+
+echo $LATEST_HEIGHT $BLOCK_HEIGHT $TRUST_HASH && sleep 2
+
+sed -i.bak -E "s|^(enable[[:space:]]+=[[:space:]]+).*$|\1true| ;
+s|^(rpc_servers[[:space:]]+=[[:space:]]+).*$|\1\"$SNAP_RPC,$SNAP_RPC\"
+
+| ;
+s|^(trust_height[[:space:]]+=[[:space:]]+).*$|\1$BLOCK_HEIGHT| ;
+s|^(trust_hash[[:space:]]+=[[:space:]]+).*$|\1\"$TRUST_HASH\"| ;
+s|^(seeds[[:space:]]+=[[:space:]]+).*$|\1\"\"|" $HOME/.empowerchain/config/config.toml
+
+mv $HOME/.empowerchain/priv_validator_state.json.backup $HOME/.empowerchain/data/priv_validator_state.json
+
+sudo systemctl restart empowerd && sudo journalctl -u empowerd -f
+```
+
+## WebAssembly Support
+
+Please note that this project does not support WebAssembly.
+
+Feel free to reach out on Discord if you encounter any issues or require further assistance. Happy validating! 🚀

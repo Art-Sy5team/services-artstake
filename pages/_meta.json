@@ -1,0 +1,30 @@
+{
+  "about": {
+    "title": "Back to Art Stake 🌐",
+    "href": "https://artstake.net",
+    "newWindow": true,
+    "type": "page"
+  },
+  "index": "👋 | Introduction",
+  "-- General": {
+    "type": "separator",
+    "title": "General"
+  },
+  "fitur": "👀 | Our Features", 
+  "community": "🥶 | Community",
+  "-- Network Info": {
+    "type": "separator",
+    "title": "For Users"
+  },
+  "tools_integrations": "Tools & Integrations",
+  "network_info": "Network Info",
+  "guild_mainnet": "Guild Mainnet | Soon",
+  "guild_testnet": "Guild Testnet",
+  "-- For Devs": {
+    "type": "separator",
+    "title": "For Devs"
+  },
+  "token_nft": "Token & NFT",
+  "faq": "❓ | FAQ",
+  "official": "🌐 | Official Links"
+}

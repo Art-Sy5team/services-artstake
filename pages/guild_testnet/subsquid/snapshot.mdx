@@ -1,0 +1,44 @@
+# TASK SNAPSHOOT SUBSQUID
+
+-  Open Link Codespace [Gitpod](https://gitpod.io/workspaces) atau [Github](https://github.com/codespaces)
+- Login Via Github
+- Klik Workspace > New Workspace
+- Pilih Repo Kalian Bebas
+- Pilih Vs Code Bebas
+- Pilih Standard
+- Continue
+
+## ✅ Langsung Jalakan
+
+```js copy
+npm install --global @subsquid/cli@latest
+```
+
+```js copy
+sqd init namafolder -t https://github.com/subsquid-quests/snapshot-squid
+```
+```js copy
+cd namafolder
+```
+
+- Ambil Keys di : https://app.subsquid.io/network-dashboard
+- Klik Get Key > Upload File di Dalem Folder /query-gateway/keys 
+
+
+```js copy
+sqd up
+```
+
+```js copy
+npm ci
+sqd build
+sqd migration:apply
+```
+
+```js copy
+sqd run .
+```
+
+```diff
+- Tunggu hingga tombol claim muncul dan done!
+```

@@ -1,0 +1,482 @@
+# Panduan Instalasi Manual Empower Node
+
+Berikut adalah langkah-langkah untuk melakukan instalasi manual Empower Node pada sistem Linux. Pastikan Anda telah memenuhi persyaratan hardware yang direkomendasikan: 4 Core CPU, 16GB RAM, dan 500GB penyimpanan NVME.
+
+## Instalasi Dependensi
+```js copy
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl git wget htop tmux build-essential jq make lz4 gcc unzip -y
+```
+
+## Instalasi Go (jika diperlukan)
+```js copy
+cd $HOME
+! [ -x "$(command -v go)" ] && {
+VER="1.20.3"
+wget "https://golang.org/dl/go$VER.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "go$VER.linux-amd64.tar.gz"
+rm "go$VER.linux-amd64.tar.gz"
+[ ! -f ~/.bash_profile ] && touch ~/.bash_profile
+echo "export PATH=$PATH:/usr/local/go/bin:~/go/bin" >> ~/.bash_profile
+source $HOME/.bash_profile
+}
+[ ! -d ~/go/bin ] && mkdir -p ~/go/bin
+```
+
+## Konfigurasi Variabel Lingkungan
+```js copy
+echo "export WALLET="wallet"" >> $HOME/.bash_profile
+echo "export MONIKER="test"" >> $HOME/.bash_profile
+echo "export EMPOWER_CHAIN_ID="circulus-1"" >> $HOME/.bash_profile
+echo "export EMPOWER_PORT="16"" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+```
+
+## Unduh dan Instalasi Binary Empower Node
+```js copy
+cd $HOME
+rm -rf empowerchain
+git clone https://github.com/EmpowerPlastic/empowerchain
+cd empowerchain
+git checkout v1.0.0-rc3
+cd chain
+make install
+```
+
+## Konfigurasi dan Inisialisasi Aplikasi
+```js copy
+empowerd config node tcp://localhost:${EMPOWER_PORT}657
+empowerd config keyring-backend os
+empowerd config chain-id circulus-1
+empowerd init "test" --chain-id circulus-1
+wget -O $HOME/.empowerchain/config/genesis.json https://testnet-files.artstake.net/empower/genesis.json
+wget -O $HOME/.empowerchain/config/addrbook.json https://testnet-files.artstake.net/empower/addrbook.json
+```
+
+## Konfigurasi dan Pengaturan Port Kustom
+```js copy
+# Mengganti port pada file app.toml
+sed -i.bak -e "s%:1317%:${EMPOWER_PORT}317%g;
+s%:8080%:${EMPOWER_PORT}080%g;
+...
+
+# Mengganti port pada file config.toml
+sed -i.bak -e "s%:26658%:${EMPOWER_PORT}658%g;
+s%:26657%:${EMPOWER_PORT}657%g;
+...
+```
+
+## Konfigurasi Pruning, Minimum Gas Price, Prometheus, dan Indexing
+```js copy
+sed -i -e "s/^pruning *=.*/pruning = \"nothing\"/" $HOME/.empowerchain/config/app.toml
+sed -i 's/minimum-gas-prices =.*/minimum-gas-prices = "0.0umpwr"/g' $HOME/.empowerchain/config/app.toml
+sed -i -e "s/prometheus = false/prometheus = true/" $HOME/.empowerchain/config/config.toml
+sed -i -e "s/^indexer *=.*/indexer = \"null\"/" $HOME/.empowerchain/config/config.toml
+```
+
+## Membuat File Service dan Mengunduh Snapshot
+```js copy
+sudo tee /etc/systemd/system/empowerd.service > /dev/null <<EOF
+...
+EOF
+
+empowerd tendermint unsafe-reset-all --home $HOME/.empowerchain
+if curl -s --head curl https://testnet-files.artstake.net/empower/snap_empower.tar.lz4 | head -n 1 | grep "200" > /dev/null; then
+  curl https://testnet-files.artstake.net/empower/snap_empower.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.empowerchain
+    else
+  echo no have snap
+fi
+```
+
+## Memulai Layanan Empower Node
+```js copy
+sudo systemctl daemon-reload
+sudo systemctl enable empowerd
+sudo systemctl restart empowerd && sudo journalctl -u empowerd -f
+```
+
+## Pembuatan dan Pemulihan Wallet
+```js copy
+empowerd keys add $WALLET
+empowerd keys add $WALLET --recover
+WALLET_ADDRESS=$(empowerd keys show $WALLET -a)
+VALOPER_ADDRESS=$(empowerd keys show $WALLET --bech val -a)
+echo "export WALLET_ADDRESS="$WALLET_ADDRESS >> $HOME/.bash_profile
+echo "export VALOPER_ADDRESS="$VALOPER_ADDRESS >> $HOME/.bash_profile
+source $HOME/.bash_profile
+```
+
+## Mengecek Status Sinkronisasi dan Saldo
+```js copy
+empowerd status 2>&1 | jq .SyncInfo
+empowerd query bank balances $WALLET_ADDRESS
+```
+
+## Membuat Validator
+```js copy
+empowerd tx staking create-validator \
+--amount 1000000umpwr \
+--from $WALLET \
+--commission-rate 0.1 \
+--commission-max-rate 0.2 \
+--commission-max-change-rate 0.01 \
+--min-self-delegation 1 \
+--pubkey $(empowerd tendermint show-validator) \
+--moniker "ART][Stake" \
+--identity "005FE135FDC8870A " \
+--details "Simple and Safe" \
+--chain-id circulus-1 \
+--gas auto --gas-adjustment 1.5 \
+-y
+```
+
+## Pemantauan
+Untuk memantau dan memberikan peringatan, Anda dapat mengikuti panduan pemantauan node Cosmos dengan TenderDuty.
+
+## Keamanan
+Untuk melindungi kunci Anda, jangan membagikan privkey dan mnemonic Anda, serta mengikuti aturan keamanan dasar seperti:
+
+### Konfigurasi Kunci SSH untuk Otentikasi
+Anda dapat menggunakan panduan ini untuk mengonfigurasi otentikasi SSH dan menonaktifkan otentikasi password di server Anda.
+
+### Keamanan Firewall
+Atur firewall untuk mengizinkan koneksi keluar, melarang semua koneksi masuk kecuali SSH dan port node P2P.
+```js copy
+sudo ufw default allow outgoing 
+sudo ufw default deny incoming 
+sudo ufw allow ssh/tcp 
+sudo ufw allow ${EMPOWER_PORT}656/tcp
+sudo ufw enable
+```
+
+## Menghapus Node
+```js copy
+sudo systemctl stop empowerd
+sudo systemctl disable empowerd
+sudo rm -rf /etc/systemd/system/empowerd.service
+sudo rm $(which empowerd)
+sudo rm -rf $HOME/.empowerchain
+sed -i "/EMPOWER_/d" $HOME/.bash_profile
+```
+## update manual
+
+```js copy
+cd $HOME
+rm -rf empowerchain
+git clone https://github.com/EmpowerPlastic/empowerchain
+cd empowerchain
+git checkout v1.0.0-rc3
+cd chain
+make build
+sudo mv $HOME/empowerchain/chain/build/empowerd $(which empowerd)
+sudo systemctl restart empowerd && sudo journalctl -u empowerd -f
+```
+
+# Panduan Operasi Layanan Empower Node ⚙️
+
+Berikut adalah beberapa perintah yang berguna untuk mengoperasikan layanan Empower Node Anda.
+
+## Mengecek Log
+Untuk melihat log layanan Empower Node dalam mode real-time, jalankan perintah berikut:
+```js copy
+sudo journalctl -u empowerd -f
+```
+
+## Memulai Layanan
+Untuk memulai layanan Empower Node, jalankan perintah berikut:
+```js copy
+sudo systemctl start empowerd
+```
+
+## Menghentikan Layanan
+Untuk menghentikan layanan Empower Node, gunakan perintah berikut:
+```js copy
+sudo systemctl stop empowerd
+```
+
+## Merestart Layanan
+Jika Anda perlu merestart layanan Empower Node, gunakan perintah berikut:
+```js copy
+sudo systemctl restart empowerd
+```
+
+## Mengecek Status Layanan
+Untuk mengecek status layanan Empower Node, gunakan perintah berikut:
+```js copy
+sudo systemctl status empowerd
+```
+
+## Me-reload Layanan
+Jika Anda melakukan perubahan pada layanan, Anda dapat me-reload konfigurasi dengan perintah berikut:
+```js copy
+sudo systemctl daemon-reload
+```
+
+## Mengaktifkan Layanan
+Untuk mengaktifkan layanan Empower Node agar otomatis dimulai saat sistem boot, gunakan perintah berikut:
+```js copy
+sudo systemctl enable empowerd
+```
+
+## Menonaktifkan Layanan
+Jika Anda ingin menonaktifkan layanan Empower Node, gunakan perintah berikut:
+```js copy
+sudo systemctl disable empowerd
+```
+
+## Informasi Sinkronisasi
+Untuk mengecek informasi tentang status sinkronisasi Empower Node, gunakan perintah berikut:
+```js copy
+empowerd status 2>&1 | jq .SyncInfo
+```
+
+## Informasi Node
+Untuk melihat informasi tentang node Empower Anda, gunakan perintah berikut:
+```js copy
+empowerd status 2>&1 | jq .NodeInfo
+```
+
+## Peer Node Anda
+Untuk mengetahui informasi peer node Anda, gunakan perintah berikut:
+```js copy
+echo $(empowerd tendermint show-node-id)'@'$(wget -qO- eth0.me)':'$(cat $HOME/.empowerchain/config/config.toml | sed -n '/Address to listen for incoming connection/{n;p;}' | sed 's/.*://; s/".*//')
+```
+
+# Manajemen Kunci
+
+## Menambahkan Wallet Baru
+Untuk menambahkan wallet baru, gunakan perintah berikut:
+```js copy
+empowerd keys add $WALLET
+```
+
+## Memulihkan Wallet yang Ada
+Jika Anda perlu memulihkan wallet yang ada, gunakan perintah berikut:
+```js copy
+empowerd keys add $WALLET --recover
+```
+
+## Menampilkan Daftar Wallet
+Untuk menampilkan daftar semua wallet yang ada, jalankan perintah berikut:
+```js copy
+empowerd keys list
+```
+
+## Menghapus Wallet
+Untuk menghapus wallet, gunakan perintah berikut:
+```js copy
+empowerd keys delete $WALLET
+```
+
+## Mengecek Saldo
+Untuk mengecek saldo dalam wallet, gunakan perintah berikut:
+```js copy
+empowerd q bank balances $(empowerd keys show $WALLET -a)
+```
+
+## Ekspor Kunci (Simpan sebagai file wallet.backup)
+Untuk mengekspor kunci wallet, gunakan perintah berikut:
+```js copy
+empowerd keys export $WALLET
+```
+
+## Impor Kunci (Mengembalikan dari wallet.backup)
+Untuk mengimpor kunci dari file wallet.backup, gunakan perintah berikut:
+```js copy
+empowerd keys import $WALLET wallet.backup
+```
+
+# Token
+
+## Untuk Alamat Valoper
+Untuk mengirim token ke alamat Valoper, gunakan perintah berikut:
+```js copy
+To valoper address
+```
+
+## Untuk Alamat Wallet
+Untuk mengirim token ke alamat wallet, gunakan perintah berikut:
+```js copy
+To wallet address
+```
+
+## Penarikan Semua Reward
+Untuk menarik semua reward yang tersedia, jalankan perintah berikut:
+```js copy
+empowerd tx distribution withdraw-all-rewards --from $WALLET --chain-id circulus-1 --gas auto --gas-adjustment 1.5
+```
+
+## Penarikan Reward dan Komisi dari Validator
+Untuk menarik reward dan komisi dari validator Anda, gunakan perintah berikut:
+```js copy
+empowerd tx distribution withdraw-rewards $VALOPER_ADDRESS --from $WALLET --commission --chain-id circulus-1 --gas auto --gas-adjustment 1.5 -y
+```
+
+## Mengecek Saldo Anda
+Untuk mengecek saldo Anda setelah penarikan, jalankan perintah berikut:
+```js copy
+empowerd query bank balances $WALLET_ADDRESS
+```
+
+## Mendelegrasikan Token kepada Diri Sendiri
+Jika Anda ingin mendelegrasikan token kepada diri sendiri, gunakan perintah berikut:
+```js copy
+empowerd tx staking delegate $(empowerd keys show $WALLET --bech val -a) 1000000umpwr --from $WALLET --chain-id circulus-1 --gas auto --gas-adjustment 1.5 -y
+```
+
+## Delegate Token
+Untuk mendelegrasikan token ke validator lain, gunakan perintah berikut:
+```js copy
+empowerd tx staking delegate <TO_VALOPER_ADDRESS> 1000000umpwr --from $WALLET --chain-id circulus-1 --gas auto --gas-adjustment 1.5 -y
+```
+
+## Delegate Token ke Validator Lain
+Jika Anda ingin delegrasikan token ke validator lain, gunakan perintah berikut:
+```js copy
+empowerd tx staking redelegate $VALOPER_ADDRESS <TO_VALOPER_ADDRESS> 1000000umpwr --from $WALLET --chain-id circulus-1 --gas auto --gas-adjustment 1.5 -y
+```
+
+## Membatalkan Delegate
+Untuk membatalkan delegasi token, gunakan perintah berikut:
+```js copy
+empowerd tx staking unbond $(empowerd keys show $WALLET --bech val -a) 1000000umpwr --from $WALLET --chain-id circulus-1 --gas auto --gas-adjustment 1.5 -y
+```
+
+## Transfer Dana
+Jika Anda ingin mentransfer dana ke alamat wallet lain, gunakan perintah berikut:
+```js copy
+empowerd tx bank send $WAL
+
+LET_ADDRESS <TO_WALLET_ADDRESS> 1000000umpwr --gas auto --gas-adjustment 1.5 -y
+```
+
+# Operasi Validator
+
+## Nama Tampilan (Moniker)
+Untuk mengganti nama tampilan validator, gunakan perintah berikut:
+```js copy
+Moniker
+```
+
+## Identitas Validator
+Jika Anda ingin menambahkan informasi identitas validator, gunakan perintah berikut:
+```js copy
+Identity
+```
+
+## Detail Validator
+Untuk menambahkan detail tentang validator Anda, gunakan perintah berikut:
+```js copy
+Details
+```
+
+## Membuat Validator Baru
+Untuk membuat validator baru, gunakan perintah berikut:
+```js copy
+empowerd tx staking create-validator \
+--amount 1000000umpwr \
+--from $WALLET \
+--commission-rate 0.1 \
+--commission-max-rate 0.2 \
+--commission-max-change-rate 0.01 \
+--min-self-delegation 1 \
+--pubkey $(empowerd tendermint show-validator) \
+--moniker "$MONIKER" \
+--identity "" \
+--details "" \
+--chain-id circulus-1 \
+--gas auto --gas-adjustment 1.5 \
+-y
+```
+
+## Mengedit Validator yang Ada
+Jika Anda perlu mengedit informasi validator yang sudah ada, gunakan perintah berikut:
+```js copy
+empowerd tx staking edit-validator \
+--commission-rate 0.1 \
+--new-moniker "$MONIKER" \
+--identity "" \
+--details "" \
+--from $WALLET \
+--chain-id circulus-1 \
+--gas auto --gas-adjustment 1.5 \
+-y
+```
+
+## Informasi Validator
+Untuk melihat informasi tentang validator Anda, gunakan perintah berikut:
+```js copy
+empowerd status 2>&1 | jq .ValidatorInfo
+```
+
+## Detail Validator
+Untuk melihat detail tentang validator Anda, gunakan perintah berikut:
+```js copy
+empowerd q staking validator $(empowerd keys show $WALLET --bech val -a)
+```
+
+## Informasi Penjara (Jailing)
+Untuk melihat informasi tentang penjara (jailing) validator Anda, gunakan perintah berikut:
+```js copy
+empowerd q slashing signing-info $(empowerd tendermint show-validator)
+```
+
+## Melepaskan Penjara Validator
+Jika validator Anda terkena penjara, Anda bisa melepaskannya dengan perintah berikut:
+```js copy
+empowerd tx slashing unjail --broadcast-mode block --from $WALLET --chain-id circulus-1 --gas auto --gas-adjustment 1.5 -y
+```
+
+## Daftar Validator Aktif
+Untuk melihat daftar validator aktif, gunakan perintah berikut:
+```js copy
+empowerd q staking validators -oj --limit=2000 | jq '.validators[] | select(.status=="BOND_STATUS_BONDED")' | jq -r '(.tokens|tonumber/pow(10; 6)|floor|tostring) + " 	 " + .description.moniker' | sort -gr | nl
+```
+
+## Mengecek Kunci Validator
+Untuk memastikan kunci validator Anda sesuai, gunakan perintah berikut:
+```js copy
+[[ $(empowerd q staking validator $VALOPER_ADDRESS -oj | jq -r .consensus_pubkey.key) = $(empowerd status | jq -r .ValidatorInfo.PubKey.value) ]] && echo -e "Your key status is ok" || echo -e "Your key status is error"
+```
+
+## Informasi Tanda Tangan (Signing)
+Untuk melihat informasi tanda tangan, gunakan perintah berikut:
+```js copy
+empowerd q slashing signing-info $(empowerd tendermint show-validator)
+```
+
+# Tata Kelola
+
+## Judul Proposal
+Jika Anda ingin membuat proposal baru, gunakan perintah berikut:
+```js copy
+empowerd  tx gov submit-proposal \
+--title "" \
+--description "" \
+--deposit 1000000umpwr \
+--type Text \
+--from $WALLET \
+--gas auto --gas-adjustment 1.5 \
+-y 
+```
+
+## Daftar Proposal
+Untuk melihat daftar proposal, gunakan perintah berikut:
+```js copy
+empowerd query gov proposals
+```
+
+## ID Proposal
+Setelah melihat daftar proposal, Anda dapat melihat detail proposal dengan perintah berikut:
+```js copy
+empowerd query gov proposal 1
+```
+
+## Voting
+Jika Anda ingin memberikan suara pada suatu proposal, gunakan perintah berikut:
+```js copy
+empowerd tx gov vote 1 yes --from $WALLET --chain-id circulus-1  --gas auto --gas-adjustment 1.5 -y
+```
+
+Gunakan panduan ini dengan bijak dan sesuaikan perintah sesuai kebutuhan Anda. Jangan ragu untuk menghubungi komunitas atau pengembang Empower Node jika Anda memiliki pertanyaan lebih lanjut. Semoga sukses dengan penggunaan Empower Node Anda! 🚀

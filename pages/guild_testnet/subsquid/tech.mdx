@@ -1,0 +1,97 @@
+# TUTORIAL Subsquid Task Tech
+
+- Creat [**Codespace**](https://github.com/codespaces) or running in VPS
+-  Use Blank Template if tou using Codespace
+- Open Terminal 
+
+## Langkah 1: Instalasi Git
+```js copy
+sudo apt update
+sudo apt install git
+```
+
+## Langkah 2:  Instalasi Node.js dan NPM
+Instal Node.js dan NPM (Node Package Manager) dengan perintah berikut:
+```js copy
+sudo apt install nodejs
+```
+```js copy
+sudo apt install npm
+```
+```js copy
+npm install -g npm@10.2.0
+```
+
+## Langkah 3: Instalasi Docker
+Instal Docker dengan menjalankan perintah-perintah berikut:
+```js copy
+sudo apt-get install ca-certificates curl gnupg lsb-release -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+```
+
+## Langkah 4: Persiapan Packages
+Buatlah direktori `global-node-packages` dan konfigurasikan Node.js untuk menggunakannya:
+```js copy
+mkdir global-node-packages
+npm config set prefix ~/global-node-packages
+export PATH="${HOME}/global-node-packages/bin:$PATH"
+```
+
+## Langkah 5: Instalasi Subsquid CLI
+Instal Subsquid CLI dengan perintah berikut:
+```js copy
+cd global-node-packages
+npm install --global @subsquid/cli@latest
+```
+
+## Langkah 6: Inisialisasi Proyek Subsquid
+Inisialisasikan Subsquid dengan menjalankan perintah-perintah berikut. Gantilah nama folder sesui task yang di kerjakannama folder sesui task yang di kerjakan dengan nama proyek Anda:
+### Task: quad-proc squid
+```js copy
+sqd init quad -t https://github.com/subsquid-quests/quad-chain-squid
+```
+### task: single-proc squid
+```js copy
+sqd init single -t https://github.com/subsquid-quests/single-chain-squid/
+```
+
+### task: double-proc squid
+```js copy
+sqd init double -t https://github.com/subsquid-quests/double-chain-squid
+```
+
+### task: triple-proc squid
+```js copy
+sqd init triple -t https://github.com/subsquid-quests/triple-chain-squid
+```
+
+## Langkah 7: Pengaturan File Key Subsquid
+Setelah install salah satu task **download** key di web testnet
+ tambahakan **file Key Subsquid** yg di download tadi di folder `/query-gateway/keys`
+lanutkan ke file task:
+```js copy
+cd name-File
+```
+
+### Langkah 8: Menjalankan Subsquid
+Jalankan proyek Subsquid dengan menjalankan perintah-perintah berikut:
+```js copy
+sqd up
+npm ci
+sqd build
+sqd migration:apply
+sqd run .
+```
+
+```diff
+- Tunggu hingga tombol claim muncul dan done!
+```
+
+Langkah 9: Menghentikan Subsquid yg berjalan
+ tekan `CTRL + C` dalam terminal, lalu jalankan perintah:
+```js copy
+sqd down
+```

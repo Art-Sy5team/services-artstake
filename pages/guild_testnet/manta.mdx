@@ -1,0 +1,96 @@
+# Tutorial Testnet Manta Network 
+
+- [Website](https://calamari.network/)
+- [Discord](https://discord.gg/mantanetwork) 
+- [Docs official ](https://docs.manta.network/) 
+- [Explorer](https://dolphin.subscan.io)
+
+### Anda dapat menjalangkan tesnet ini jika Anda memiliki windows, Linux atau Mac. tidak ada Spesifikasi Minimum
+
+## Install Client
+
+```js copy
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/Manta-Network/manta-rs/main/tools/install.sh | sh
+```
+
+```js copy
+source ~/.profile
+```
+
+### Registrasi
+```js copy
+manta-trusted-setup register
+
+```
+
+[![manta.png](https://i.postimg.cc/ZYXmCWwF/manta.png)](https://postimg.cc/1402d3hf)
+
+- Masukan Username Twitter dan Email anda
+- simpan semua file disana (contoh SS di atas yang harus di backup)
+- buka Link Form di crome anda dan Registrasi isi detail (**tiap form URL bedah**)
+- NAMA, EMAIL, Discord, FEEDBACK, & Address KMA [Tutorial Import wallet Polkadot](https://art-sy5team.gitbook.io/polkadot-address/)
+- setelah itu tunggu paling lama 24 jam antrian pendaftaran & lanjut **Run Contribution** 
+
+
+# Jalankan Kontribusi
+partisipan yang terdaftar dapat berkontribusi kapan saja selama event berlangsung
+
+```js copy
+ sudo apt update
+```
+
+```js copy
+sudo apt install pkg-config build-essential libssl-dev curl jq
+```
+
+Install Rust
+
+```js copy
+curl https://sh.rustup.rs/ -sSf | sh -s -- -y
+```
+
+Setting path
+
+```js copy
+source $HOME/.cargo/env
+```
+
+## Install Manta-RS & Run
+
+```js copy
+git clone https://github.com/Manta-Network/manta-rs.git
+```
+screen manta
+```js copy
+screen -S manta
+```
+ke foldder
+```js copy
+cd manta-rs
+```
+jalankan 
+```js copy
+cargo run --release --all-features --bin groth16_phase2_client contribute
+```
+
+### **Masukan Pharse yang anda backup dan tunggu hingga Selesai dan copy simpan Contribution hash !**
+
+[![hash.png](https://i.postimg.cc/PJLkSwMy/hash.png)](https://postimg.cc/XB0hJXmB)
+
+## Hapus directory (Optional jika ingin menghapus)
+```js copy
+rm -rf manta-rs
+```
+
+## event-event Manta Network 
+
+- Event 1: [$1,000 in $KMA Prizes - Manta Network Trusted Setup](https://gleam.io/hCQmJ/manta-network-trusted-setup-campaign) Event ini jika anda telah mendapatkan balasan email & sudah menjalan **Run Contribution** butuh hash
+- Event 2: [Dolphin Testnet v2 Incentivized Testnet](https://gleam.io/ye0bg/dolphin-testnet-v2-airdrop) Event ini untuk ikut yang join testnet Dolphin khusus user PC.
+- Form 1 : [Dolphin Testnet Airdrop](https://docs.google.com/forms/d/e/1FAIpQLScNkYcYQxn9ZpJOc0mg00i2HEV5qHQmSESDDGlFSJHC8bB2rQ/viewform) Jika sudah join menyelesaikan gleam silahkan isi juga ini.
+- From 2 : [Dolphin Testnet v2 Feedback](https://docs.google.com/forms/d/e/1FAIpQLSeXxAUNQWNIWS5wOYjlmYNcBvkuTY6jwZbjS4gkqHjcQpRB2A/viewform) Event ini untuk memberi masukan dan ranting untuk testnet Dolphin 
+
+## Event 2 [Tutorial Testnet Dolphin](https://art-sy5team.gitbook.io/dolphin/)
+
+
+## Art-Team INFO
+noted: ***art team*** here does not have any specific goals or intentions, they only collect data and share it with everyone.

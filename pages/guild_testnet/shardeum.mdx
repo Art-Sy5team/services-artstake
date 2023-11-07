@@ -1,0 +1,157 @@
+# Tutorial Testnet Shardeum
+
+- [Website](https://shardeum.org/id/)
+- [Discord](https://discord.gg/shardeum)
+- [Faucet](https://faucet-sphinx.shardeum.org/)
+- [Doc offcial](https://docs.shardeum.org/node/run/validator)
+
+## Spesifikasi Minimum
+
+| Komponen    | Requirements minimal                          |
+| ----------- | --------------------------------------------- |
+| sistem      | Ubuntu 18.04 atau lebih tinggi                |
+| CPU         | 4 Cores / 8 Cores                             |
+| RAM         | 4+ GB / 16 GB RAM                             |
+| Penyimpanan | 250 GB SSD                                    |
+| Koneksi     | 20 mbps / 50 mbps upload & bandwidth download |
+
+## Setup Wallet & Faucet
+
+- disarangkan gunakan wallet baru!
+- buka website [Network Endpoints](https://docs.shardeum.org/network/endpoints#sphinx-1x)
+- add RPC `Sphinx 1.X` langsung **klik to connect**
+- Buka website [Faucet](https://faucet-sphinx.shardeum.org/) atau Faucet di [Discord](https://discord.gg/shardeum)
+- lanjut step SETUP NODE
+
+[![Shardeum.png](https://i.postimg.cc/ydxm4Rc6/Shardeum.png)](https://postimg.cc/G808vHX6)
+
+## Setup NODE
+
+### Install & Update
+
+```js copy
+ufw allow ssh && ufw allow 8080 && ufw allow https && ufw allow http && ufw allow 443 && ufw enable
+```
+
+```js copy
+sudo apt update && sudo apt upgrade -y
+```
+
+```js copy
+sudo apt-get install curl
+```
+
+```js copy
+sudo apt install docker.io -y
+```
+
+```js copy
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+## RUN NODE
+
+```js copy
+curl -O https://gitlab.com/shardeum/validator/dashboard/-/raw/main/installer.sh && chmod +x installer.sh && ./installer.sh
+```
+
+## dibagian **# GET INFO FROM USER #**
+
+- Do you want to run the web based Dashboard? (y/n): `y`
+- Set the password to access the Dashboard: `Buat password ex:art123`
+- Enter the port (1025-65536) to access the web based Dashboard (default 8080): `8080 atau lansung enter`
+- What base directory should the node use (defaults to ~/.shardeum): `Langsung enter`
+- Tunggu hingga selesai!
+
+[![Shardeum.png](https://i.postimg.cc/qv4dTPxR/Shardeum.png)](https://postimg.cc/GH7fPSNw)
+
+## Next open shell app NODE
+
+```js copy
+$HOME/.shardeum/shell.sh
+```
+
+### Start Cli
+
+```js copy
+operator-cli gui start
+```
+
+### Check status
+
+```js copy
+pm2 list
+```
+
+[![Screenshot-2023-02-06-202600.png](https://i.postimg.cc/2SjmNpCw/Screenshot-2023-02-06-202600.png)](https://postimg.cc/PP701Rpp)
+
+## Start Validator & STAKE
+
+- Buka di browser `https://IP-VPS:8080`
+- jika browser situs tidak aman, klik PROCEED TO THE SITE
+- masukan Password yang di buat tadi
+- ke bagia **Maintenance** & Klik **Start Node**
+
+[![Shardeum.png](https://i.postimg.cc/RVYFdV7t/Shardeum.png)](https://postimg.cc/qz84MrZB)
+
+### Start Validator
+  
+```js copy
+operator-cli start
+```
+  
+### Check status
+
+```js copy
+pm2 list
+```
+
+[![Screenshot-2023-02-06-203347.png](https://i.postimg.cc/23Nzp329/Screenshot-2023-02-06-203347.png)](https://postimg.cc/FkGt3Ft0)
+
+- silahkan lanjutkan stake 10 SHM di dashboard validator
+- Connect wallet
+- Klik Add Stake & Klik Stake
+
+[![Shardeum.png](https://i.postimg.cc/k414Hx6n/Shardeum.png)](https://postimg.cc/7GzwGJnc)
+
+Stake Wallet Address [wallet connected]
+Nominee Public Key [filled in automatically while validator is running]
+Stake amount (SHM) [empty and is in units ether not wei]
+
+## Perintah-perintah Berguna
+
+### Start operator
+```js copy
+operator-cli start
+```
+### Storp operator
+```js copy
+operator-cli stop
+```
+### Check Status operator
+
+### Update dan cek versi
+
+```js copy
+operator-cli update
+```
+
+```js copy
+operator-cli version
+```
+
+operator-cli status
+
+### Check list operator
+
+```js copy
+pm2 list
+```
+### Delete operator
+```js copy
+pm2 delete [id]
+```
+### Art-Team INFO
+
+noted: **art team** here does not have any specific goals or intentions, they only collect data and share it with everyone.

@@ -1,0 +1,466 @@
+# Panduan Pengaturan Node Celestia
+
+![Logo Celestia](https://avatars.githubusercontent.com/u/54859940?s=200&v=4)
+
+Celestia adalah teknologi blockchain modular baru yang mendukung, memperluas, dan mengamankan aplikasi Web3. Dalam panduan ini, kami akan membagikan perintah instalasi untuk node validator Celestia dengan bantuan layanan Tim [ART Stake](https://artstake.net/).
+
+
+## 🔧 Pengaturan Node Validator (Pemasangan Manual)
+
+1. **Prasyarat.** Pastikan paket sistem terkini dan instal dependensi:
+```js copy
+sudo apt update && sudo apt upgrade -y
+sudo apt install curl git wget htop tmux build-essential jq make gcc -y
+```
+
+2. **Set Variabel Lingkungan.** Isi dompet dan moniker Anda `<NAMA_DOMPET_ANDA>` `<NAMA_MONIKER_ANDA>` tanpa tanda `<>`, simpan dan impor variabel ke sistem:
+```js copy
+CELESTIA_PORT=11
+echo "export WALLET="<NAMA_DOMPET_ANDA>"" >> $HOME/.bash_profile
+echo "export MONIKER="<NAMA_MONIKER_ANDA>"" >> $HOME/.bash_profile
+echo "export CHAIN_ID="blockspacerace-0"" >> $HOME/.bash_profile
+echo "export CELESTIA_PORT="${CELESTIA_PORT}"" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+```
+
+3. **Pasang Go**
+```js copy
+cd ~
+! [ -x "$(command -v go)" ] && {
+VER="1.19.3"
+wget "https://golang.org/dl/go$VER.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "go$VER.linux-amd64.tar.gz"
+rm "go$VER.linux-amd64.tar.gz"
+[ ! -f ~/.bash_profile ] && touch ~/.bash_profile
+echo "export PATH=$PATH:/usr/local/go/bin:~/go/bin" >> ~/.bash_profile
+source ~/.bash_profile
+}
+[ ! -d ~/go/bin ] && mkdir -p ~/go/bin
+go version
+```
+
+4. **Unduh dan Bangun Binari**
+```js copy
+cd $HOME 
+rm -rf celestia-app 
+git clone https://github.com/celestiaorg/celestia-app.git 
+cd celestia-app/ 
+APP_VERSION=v0.13.2 
+git checkout tags/$APP_VERSION -b $APP_VERSION 
+make install
+```
+
+5. **Konfigurasi Jaringan P2P**
+```js copy
+cd $HOME
+rm -rf networks
+git clone https://github.com/celestiaorg/networks.git
+```
+
+6. **Konfigurasi dan Inisialisasi Aplikasi**
+```js copy
+celestia-appd config node tcp://localhost:${CELESTIA_PORT}657
+celestia-appd config keyring-backend os
+celestia-appd config chain-id $CHAIN_ID
+celestia-appd init $MONIKER --chain-id $CHAIN_ID
+```
+
+7. **Unduh Genesis**
+```js copy
+wget -O $HOME/.celestia-app/config/genesis.json https://testnet-files.artstake.net/celestia/genesis.json
+wget -O $HOME/.celestia-app/config/addrbook.json https://testnet-files.artstake.net/celestia/addrbook.json
+```
+
+8. **Atur Seeds dan Peers**
+>Anda dapat menemukan lebih banyak peers di sini: https://artstake.net/services/testnet/celestia/#peer
+```js copy
+SEEDS="fedea9723696360d429a23792225594779cc7cd7@celestia-testnet-seed.artstake.net:11656"
+PEERS="193acd7bf7049b425d7b95c24e02250fce8ad45c@celestia-testnet-peer.artstake.net:11656"
+sed -i -e 's|^seeds *=.*|seeds = "'$SEEDS'"|; s|^persistent_peers *=.*|persistent_peers = "'$PEERS'"|' $HOME/.celestia-app/config/config.toml
+```
+
+9. **Atur Port Kustom pada Berkas app.toml**
+```js copy
+sed -i.bak -e "s%^address = \"tcp://0.0.0.0:1317\"%address = \"tcp://0.0.0.0:${CELESTIA_PORT}317\"%;
+s%^address = \":8080\"%address = \":${CELESTIA_PORT}080\"%;
+s%^address = \"0.0.0.0:9090\"%address = \"0.0.0.0:${CELESTIA_PORT}090\"%; 
+s%^address = \"0.0.0.0:9091\"%address = \"0.0.0.0:${CELESTIA_PORT}091\"%; 
+s%^address = \"0.0.0.0:8545\"%address = \"0.0.0.0:${CELESTIA_PORT}545\"%; 
+s%^ws-address = \"0.0.0.0:8546\"%ws-address = \"0.0.0.0:${CELESTIA_PORT}546\"%" $HOME/.
+
+celestia-app/config/app.toml
+```
+
+10. **Atur Port Kustom pada Berkas config.toml**
+```js copy
+sed -i.bak -e "s%^proxy_app = \"tcp://127.0.0.1:26658\"%proxy_app = \"tcp://127.0.0.1:${CELESTIA_PORT}658\"%; 
+s%^laddr = \"tcp://127.0.0.1:26657\"%laddr = \"tcp://0.0.0.0:${CELESTIA_PORT}657\"%; 
+s%^pprof_laddr = \"localhost:6060\"%pprof_laddr = \"localhost:${CELESTIA_PORT}060\"%;
+s%^laddr = \"tcp://0.0.0.0:26656\"%laddr = \"tcp://0.0.0.0:${CELESTIA_PORT}656\"%;
+s%^external_address = \"\"%external_address = \"$(wget -qO- eth0.me):${CELESTIA_PORT}656\"%;
+s%^prometheus_listen_addr = \":26660\"%prometheus_listen_addr = \":${CELESTIA_PORT}660\"%" $HOME/.celestia-app/config/config.toml
+```
+
+11. **Konfigurasi Pruning**
+```js copy
+sed -i -e "s/^pruning *=.*/pruning = \"nothing\"/" $HOME/.celestia-app/config/app.toml
+sed -i -e "s/^pruning-keep-recent *=.*/pruning-keep-recent = \"100\"/" $HOME/.celestia-app/config/app.toml
+sed -i -e "s/^pruning-interval *=.*/pruning-interval = \"10\"/" $HOME/.celestia-app/config/app.toml
+```
+
+12. **Konfigurasi ALAMAT EKSTERNAL**
+~~~bash
+EXTERNAL_ADDRESS=$(wget -qO- eth0.me)
+sed -i.bak -e "s/^external-address = \"\"/external-address = \"$EXTERNAL_ADDRESS:26656\"/" $HOME/.celestia-app/config/config.toml
+~~~
+
+13. **Atur Harga Gas Minimum, Aktifkan Prometheus, dan Nonaktifkan Indexing**
+```js copy
+sed -i -e "s/^minimum-gas-prices *=.*/minimum-gas-prices = \"0.01utia\"/" $HOME/.celestia-app/config/app.toml
+sed -i -e "s/prometheus = false/prometheus = true/" $HOME/.celestia-app/config/config.toml
+sed -i -e "s/^indexer *=.*/indexer = \"null\"/" $HOME/.celestia-app/config/config.toml
+```
+
+14. **Reset Jaringan**
+~~~bash 
+celestia-appd tendermint unsafe-reset-all --home $HOME/.celestia-app 
+~~~
+
+15. **Buat Berkas Layanan**
+```js copy
+sudo tee /etc/systemd/system/celestia-validatord.service > /dev/null <<EOF
+[Unit]
+Description=celestia
+After=network-online.target
+
+[Service]
+User=$USER
+ExecStart=$(which celestia-appd) start --home $HOME/.celestia-app/
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+16. **Unduh Snapshot**
+~~~bash
+curl https://testnet-files.artstake.net/celestia/snap_celestia.tar.lz4 | lz4 -dc - | tar -xf - -C $HOME/.celestia-app
+~~~
+
+17. **Aktifkan dan Mulai Layanan**
+```js copy
+sudo systemctl daemon-reload
+sudo systemctl enable celestia-validatord
+sudo systemctl restart celestia-validatord && sudo journalctl -u celestia-validatord -f
+```
+
+## 💰 Membuat Dompet
+
+### Flag baru harus ditambahkan dalam testnet blockspacerace-0 yang baru
+>`--evm-address` Flag ini harus berisi alamat EVM 0x.  
+
+
+1. **Buat dompet baru di Celestia.** Jangan lupa untuk menyimpan kata-kata rahasianya.
+```js copy
+celestia-appd keys add $WALLET
+``` 
+
+(pilihan) Memulihkan dompet, gunakan perintah berikut
+```js copy
+celestia-appd keys add $WALLET --recover
+```
+
+2. **Isi dompet Anda** 
+Sebelum membuat validator, Anda perlu mengisi dompet Anda, pergi ke [server Discord Celestia](https://discord.gg/celestiacommunity) dan buka saluran faucet. `Mohon isi alamat orchestrator Anda juga, jika Anda ingin menjalankan Celestia bridge, Full, atau Light node` 
+```js copy
+$request <ALAMAT_DOMPET_ANDA>
+```
+
+# Panduan Pengguna Celestia Validator 🚀
+
+Selamat datang di panduan pengguna Celestia Validator! Panduan ini akan membimbing Anda melalui langkah-langkah untuk mengatur dan menjalankan node validator Celestia. Pastikan Anda mengikuti setiap langkah dengan cermat.
+
+## 1. Simpan Alamat Wallet dan Validator
+
+Gantilah alamat ERC-20 Anda `PUT_YOUR_ERC20_ADDRESS>` dengan alamat ERC-20 yang sebenarnya tanpa menggunakan tanda `< >`.
+
+```js copy
+ERC20_ADDRESS="<PUT_YOUR_ERC20_ADDRESS>"
+WALLET_ADDRESS=$(celestia-appd keys show $WALLET -a)
+VALOPER_ADDRESS=$(celestia-appd keys show $WALLET --bech val -a)
+echo "export WALLET_ADDRESS="${WALLET_ADDRESS} >> $HOME/.bash_profile
+echo "export VALOPER_ADDRESS="${VALOPER_ADDRESS} >> $HOME/.bash_profile
+echo "export EVM_ADDRESS=""$ERC20_ADDRESS" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+```
+
+## 2. Buat Validator 👨‍💻
+
+> **Catatan**
+> Sebelum membuat validator, pastikan untuk memeriksa saldo dan memastikan bahwa node Anda telah disinkronkan.
+
+### 2.1 Periksa Status Sinkronisasi
+
+Setelah node Anda sepenuhnya tersinkronisasi, keluaran akan menunjukkan `false`.
+
+```js copy
+celestia-appd status 2>&1 | jq .SyncInfo
+```
+
+### 2.2 Periksa Saldo Anda
+
+```js copy
+celestia-appd query bank balances $WALLET_ADDRESS
+```
+
+### 2.3 Buat Validator
+
+```js copy
+celestia-appd tx staking create-validator \
+  --amount 1000000utia \
+  --from $WALLET \
+  --commission-max-change-rate "0.01" \
+  --commission-max-rate "0.2" \
+  --commission-rate "0.05" \
+  --min-self-delegation "1" \
+  --pubkey  $(celestia-appd tendermint show-validator) \
+  --moniker $MONIKER \
+  --chain-id $CHAIN_ID \
+  --evm-address $EVM_ADDRESS \
+  --gas=auto \
+  --gas-adjustment=1.5 \
+  --fees 5000utia
+```
+
+### 2.4 (Opsional) Tambahkan Flag `--website`, `--security-contact`, `--identity`, `--details` Jika Diperlukan
+
+```js copy
+--website <YOUR_SITE_URL> \
+--security-contact <YOUR_CONTACT> \
+--identity <KEYBASE_IDENTITY> \
+--details <YOUR_VALIDATOR_DETAILS>
+```
+
+## 3. Pemantauan 🔍
+
+Kami juga akan memberikan informasi tentang cara mengatur pemantauan node, yang merupakan aspek penting untuk memastikan operasinya berjalan lancar.  
+Jika Anda ingin mengatur sistem pemantauan dan pemberitahuan, gunakan [panduan pemantauan node Celestia kami dengan tenderduty] Tetap terhubung!
+
+## 4. Keamanan 🔒
+
+Untuk melindungi kunci Anda, jangan pernah membagikan privkey dan mnemonic Anda, dan ikuti aturan keamanan dasar.
+
+### 4.1 Siapkan Kunci SSH untuk Otentikasi 🔑
+
+Anda dapat menggunakan [panduan ini](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-20-04) untuk mengonfigurasi otentikasi ssh dan menonaktifkan otentikasi kata sandi pada server Anda.
+
+### 4.2 Keamanan Firewall 🛡️
+
+Atur default untuk mengizinkan koneksi keluar, menolak semua koneksi masuk, izinkan ssh, dan port node p2p.
+
+```js copy
+sudo ufw default allow outgoing 
+sudo ufw default deny incoming 
+sudo ufw allow ssh/tcp 
+sudo ufw allow ${CELESTIA_PORT}656/tcp
+sudo ufw enable
+```
+
+Jika Anda ingin membuka akses ke port RPC dan gRPC, tambahkan aturan berikut:
+
+```js copy
+IP_ADDRESS="<PUT_IP_ADDRESS>"
+sudo ufw allow from $IP_ADDRESS to any port ${CELESTIA_PORT}090
+sudo ufw allow from $IP_ADDRESS to any port ${CELESTIA_PORT}657
+```
+
+## Selamat! 🎉
+
+Anda telah berhasil menginstal dan mengonfigurasi node validator Celestia! Bergabunglah dengan komunitas Celestia dan mulailah berkontribusi pada jaringan. Anda juga dapat melihat perintah-perintah berguna di bawah ini.
+  
+Periksa log
+```js copy
+sudo journalctl -u celestia-validatord -f
+```
+  
+Berhenti layanan
+```js copy
+sudo systemctl stop celestia-validatord
+```
+Mulai layanan
+```js copy
+sudo systemctl start celestia-validatord
+```
+
+Restart layanan
+```js copy
+sudo systemctl restart celestia-validatord
+```
+
+<h3> Operasi Wallet </h3>
+
+Periksa saldo
+```js copy
+celestia-appd query bank balances $WALLET_ADDRESS
+```
+
+Transfer dana
+```js copy
+celestia-appd tx bank send $WALLET_ADDRESS <TO_WALLET_ADDRESS> 1000000utia --gas auto --gas-adjustment 1.3 --fees 5000utia
+```
+
+Daftar wallet
+```js copy
+celestia-appd keys list
+```
+
+Buat wallet baru
+```js copy
+celestia-appd keys add $WALLET
+```
+
+Pulihkan wallet
+```js copy
+celestia-appd keys add $WALLET --recover
+```
+
+Hapus wallet
+```js copy
+celestia-appd keys delete $WALLET
+```
+
+<h3>Informasi Node </h3>
+
+Informasi sinkronisasi
+
+```js copy
+celestia-appd status 2>&1 | jq .SyncInfo
+```
+
+Status node
+
+```js copy
+curl -s localhost:${CELESTIA_PORT}657/status
+```
+
+Info node
+
+```js copy
+celestia-appd status 2>&1 | jq .NodeInfo
+```
+
+Info validator
+
+```js copy
+celestia-appd status 2>&1 | jq .ValidatorInfo
+```
+
+Rekan node Anda
+
+```js copy
+echo $(celestia-appd tendermint show-node-id)'@'$(curl -s ifconfig.me)':'$(cat $HOME
+
+/.celestia-app/config/config.toml | sed -n '/Address to listen for incoming connection/{n;p;}' | sed 's/.*://; s/".*//')
+```
+
+Dapatkan daftar rekan yang terhubung saat ini
+
+```js copy
+curl -sS http://localhost:${CELESTIA_PORT}657/net_info | jq -r '.result.peers[] | "\(.node_info.id)@\(.remote_ip):\(.node_info.listen_addr)"' | awk -F ':' '{print $1":"$(NF)}'
+```
+
+### Voting
+
+```js copy
+celestia-appd tx gov vote 1 yes --from $WALLET --chain-id $CHAIN_ID --fees 5000utia
+```
+
+### Staking, Delegasi, dan Imbalan
+
+Tarik semua imbalan
+
+```js copy
+celestia-appd tx distribution withdraw-all-rewards --from $WALLET --chain-id $CHAIN_ID --gas auto --gas-adjustment 1.3 --fees 5000utia
+```
+
+Tarik imbalan dengan komisi
+
+```js copy
+celestia-appd tx distribution withdraw-rewards $VALOPER_ADDRESS --from $WALLET --commission --chain-id $CHAIN_ID --gas auto --gas-adjustment 1.3 --fees 5000utia
+```
+
+Periksa saldo 
+
+```js copy
+celestia-appd query bank balances $WALLET_ADDRESS
+```
+
+Delegasikan staked
+
+```js copy
+celestia-appd tx staking delegate $VALOPER_ADDRESS 10000000utia --from $WALLET --chain-id $CHAIN_ID --gas=auto --gas-adjustment 1.3 --fees 5000utia
+```
+
+Redelegasikan staked ke validator lain
+
+```js copy
+celestia-appd tx staking redelegate <srcValidatorAddress> <destValidatorAddress> 1000000utia --from $WALLET --chain-id $CHAIN_ID --gas auto --gas-adjustment 1.3 --fees 5000utia
+```
+
+### Operasi Validator
+
+Edit validator
+
+```js copy
+celestia-appd tx staking edit-validator \
+  --moniker=$NODENAME \
+  --identity=<your_keybase_id> \
+  --website="<your_website>" \
+  --details="<your_validator_description>" \
+  --chain-id=$CHAIN_ID \
+  --from=$WALLET \
+  --fees 5000utia
+```
+
+Informasi validator
+
+```js copy
+celestia-appd status 2>&1 | jq .ValidatorInfo
+
+```
+
+Informasi pembekuan
+
+```js copy
+celestia-appd q slashing signing-info $(celestia-appd tendermint show-validator)
+```
+
+Bebaskan validator yang dibekukan
+
+```js copy
+celestia-appd tx slashing unjail --broadcast-mode=block --from $WALLET --chain-id $CHAIN_ID --gas auto --gas-adjustment 1.5 --fees 5000utia
+```
+
+Status konsensus
+
+```js copy
+curl localhost:${CELESTIA_PORT}657/consensus_state
+```
+
+### Hapus Node
+
+```js copy
+sudo systemctl stop celestia-validatord
+sudo systemctl disable celestia-validatord
+sudo rm -rf /etc/systemd/system/celestia-validatord*
+sudo systemctl daemon-reload
+sudo rm $(which celestia-appd)
+sudo rm -rf $HOME/.celestia-app
+sudo rm -fr $HOME/celestia-app
+sed -i "/CELESTIA_/d" $HOME/.bash_profile
+```
+
